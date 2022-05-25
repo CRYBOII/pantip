@@ -1,0 +1,21 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer components {
+  body {
+    font-family: Arial, Helvetica, Sans-serif, Tahoma;
+  }
+  .baseV {
+    @apply bg-[#2d2a49];
+  }
+  .lessV {
+    @apply bg-[#353156];
+  }
+  .simV {
+    @apply bg-[#6b6786];
+  }
+  .textV {
+    @apply text-[#c8cde1];
+  }
+}

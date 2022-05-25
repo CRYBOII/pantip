@@ -1,0 +1,341 @@
+type Comment {
+  body: String
+  created_at: DateTime
+  email: String
+  id: ID!
+  post_id: ID
+  username: String
+  votes: [Vote]
+    @materializer(
+      query: "countVoteCMWithPostID"
+      arguments: [{ name: "comment_id", field: "id" }]
+    )
+}
+type Count {
+  count: Int
+}
+type Post {
+  body: String
+  created_at: DateTime
+  email: String
+  featured: String
+  id: ID!
+  tag_id: ID
+  title: String
+  username: String
+  profile: String
+  tag: Tag
+    @materializer(
+      query: "getTagById"
+      arguments: [{ name: "id", field: "tag_id" }]
+    )
+  comments: [Comment]
+    @materializer(
+      query: "getCommentByPostID"
+      arguments: [{ name: "post_id", field: "id" }]
+    )
+  votes: [Vote]
+    @materializer(
+      query: "countVoteWithPostID"
+      arguments: [{ name: "post_id", field: "id" }]
+    )
+}
+
+type Reaction {
+  comment_id: ID
+  created_at: DateTime
+  email: String
+  id: ID!
+  post_id: ID
+  react: String
+  username: String
+}
+
+type Tag {
+  created_at: DateTime
+  id: ID!
+  tag: String
+  username: String
+  count: Count
+    @materializer(
+      query: "countPostWithTagID"
+      arguments: [{ name: "tag_id", field: "id" }]
+    )
+}
+
+type Vote {
+  comment_id: ID
+  created_at: DateTime
+  email: String
+  id: ID!
+  post_id: ID
+}
+
+type Query {
+  getCommentList: [Comment]
+    @dbquery(
+      type: "postgresql"
+      schema: "public"
+      table: "comment"
+      configuration: "postgresql_config"
+    )
+
+  getCommentByPostID(post_id: ID!): [Comment]
+    @dbquery(
+      type: "postgresql"
+      query: """
+      select * from "comment" where "post_id" = $1
+      order by "created_at" asc
+      """
+      configuration: "postgresql_config"
+    )
+
+  """
+  This query is an example of how to simply paginate your responses.
+  """
+  getPaginatedCommentList(first: Int!, after: Int!): [Comment]
+    @dbquery(
+      type: "postgresql"
+      query: """
+      select * from "public"."comment" limit $1 offset $2
+      """
+      configuration: "postgresql_config"
+    )
+  """
+  In this example, a single query parameter is passed. If the request to the DB will
+  return at most one value you can remove the square brackets from the result.
+  """
+  getCommentById(id: ID!): [Comment]
+    @dbquery(
+      type: "postgresql"
+      query: """
+      select * from "public"."comment" where "id" = $1
+      """
+      configuration: "postgresql_config"
+    )
+  """
+  In this example, two query parameters are passed. If the request to the DB will
+  return at most one value you can remove the square brackets from the result.
+  """
+  getPostById(id: String!): Post
+    @dbquery(
+      type: "postgresql"
+      query: """
+      select * from "post" where "id" = $1
+      """
+      configuration: "postgresql_config"
+    )
+  getCommentByIdAndBody(id: ID!, body: String!): [Comment]
+    @dbquery(
+      type: "postgresql"
+      query: """
+      select * from "public"."comment" where "id" = $1 and "body" = $2
+      """
+      configuration: "postgresql_config"
+    )
+  getPostWithLimit(limit: Int!): [Post]
+    @dbquery(
+      type: "postgresql"
+      query: """
+      select * from "post"
+      order by "created_at" desc
+      limit $1
+      """
+      configuration: "postgresql_config"
+    )
+  getPostList: [Post]
+    @dbquery(
+      type: "postgresql"
+      schema: "public"
+      table: "post"
+      configuration: "postgresql_config"
+    )
+  getReactionList: [Reaction]
+    @dbquery(
+      type: "postgresql"
+      schema: "public"
+      table: "reaction"
+      configuration: "postgresql_config"
+    )
+  getTagList: [Tag]
+    @dbquery(
+      type: "postgresql"
+      schema: "public"
+      table: "tag"
+      configuration: "postgresql_config"
+    )
+
+  getVoteList: [Vote]
+    @dbquery(
+      type: "postgresql"
+      schema: "public"
+      table: "vote"
+      configuration: "postgresql_config"
+    )
+
+  getTagById(id: ID!): Tag
+    @dbquery(
+      type: "postgresql"
+      query: """
+      SELECT * FROM "tag" WHERE "id" = $1
+      """
+      configuration: "postgresql_config"
+    )
+
+  countPostWithTagID(tag_id: ID!): Count
+    @dbquery(
+      type: "postgresql"
+      query: """
+      SELECT count(*) FROM "post" WHERE "tag_id" = $1
+      """
+      configuration: "postgresql_config"
+    )
+
+  countVoteWithPostID(post_id: ID!): [Vote]
+    @dbquery(
+      type: "postgresql"
+      query: """
+      SELECT * FROM "vote" WHERE "post_id" = $1
+      """
+      configuration: "postgresql_config"
+    )
+  countVoteCMWithPostID(comment_id: ID!): [Vote]
+    @dbquery(
+      type: "postgresql"
+      query: """
+      SELECT * FROM "vote" WHERE "comment_id" = $1
+      """
+      configuration: "postgresql_config"
+    )
+
+  getPostByTagIdWithLimitPaging(
+    tag_id: String!
+    first: Int! = 10
+    after: Int! = 0
+  ): [Post]
+    @dbquery(
+      type: "postgresql"
+      query: """
+      SELECT * FROM "post" WHERE "tag_id" = $1
+      order by "created_at" desc
+      LIMIT $2 OFFSET $3
+      """
+      configuration: "postgresql_config"
+    )
+
+  getTagByName(tag: String!): Tag
+    @dbquery(
+      type: "postgresql"
+      query: """
+      select * from "tag" where "tag" = $1
+      """
+      configuration: "postgresql_config"
+    )
+
+  searchTagWithLimit(tag: String!, limit: Int!): [Tag]
+    @dbquery(
+      type: "postgresql"
+      query: """
+      select * from "tag" where "tag" ~ $1 limit $2
+      """
+      configuration: "postgresql_config"
+    )
+
+  deleteVote(email: String!, post_id: ID!): Vote
+    @dbquery(
+      type: "postgresql"
+
+      query: """
+      DELETE  FROM vote
+      WHERE (email = $1 AND post_id = $2)
+      RETURNING *
+      """
+
+      configuration: "postgresql_config"
+    )
+}
+
+type Mutation {
+  """
+  In this mutation example you can see how to do a mutation to insert data in the database.
+  """
+  inserVoteComment(email: String!, comment_id: String!): Vote
+    @dbquery(
+      type: "postgresql"
+      schema: "public"
+      table: "vote"
+      dml: INSERT
+
+      configuration: "postgresql_config"
+    )
+  inserVote(email: String!, post_id: String!): Vote
+    @dbquery(
+      type: "postgresql"
+      schema: "public"
+      table: "vote"
+      dml: INSERT
+
+      configuration: "postgresql_config"
+    )
+
+  insertTag(tag: String!, username: String!): Tag
+    @dbquery(
+      type: "postgresql"
+      schema: "public"
+      table: "tag"
+      dml: INSERT
+      configuration: "postgresql_config"
+    )
+
+  insertPost(
+    email: String!
+    body: String!
+    tag_id: ID!
+    featured: String!
+    title: String!
+    username: String!
+    profile: String!
+  ): Post
+    @dbquery(
+      type: "postgresql"
+      schema: "public"
+      table: "post"
+      dml: INSERT
+      configuration: "postgresql_config"
+    )
+
+  createComment(
+    body: String!
+    email: String!
+    username: String!
+    post_id: String!
+  ): Comment
+    @dbquery(
+      type: "postgresql"
+      dml: INSERT
+      schema: "public"
+      table: "comment"
+      configuration: "postgresql_config"
+    )
+
+  """
+  In this mutation example you can see how to do a mutation to delete data from the database.
+  """
+  deletePost(
+    created_at: DateTime!
+    email: String!
+    id: ID!
+    body: String!
+    tag_id: ID!
+    featured: String!
+    title: String!
+    username: String!
+  ): Post
+    @dbquery(
+      type: "postgresql"
+      schema: "public"
+      table: "post"
+      dml: DELETE
+      configuration: "postgresql_config"
+    )
+}
